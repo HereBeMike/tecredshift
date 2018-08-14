@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head><title>TEC Redshift Cart Conversion</title>
+    <link href="https://fonts.googleapis.com/css?family=Economica|Six+Caps" rel="stylesheet">
+
+	<script type="text/javascript" src="pako.min.js"></script>
+	<script type="text/javascript" src="UPNG.js"></script>
+<script type="text/javascript">
+window.addEventListener('load', function(){
+    document.getElementById('loader').addEventListener('change', handleImage, false);
+    document.getElementById('loader2').addEventListener('change', handleImage, false);
+});
+
+function handleImage(e) {
+    var reader = new FileReader();
+    reader.__from = this.id;
+    reader.onload = function (event) {
+    	var png = UPNG.decode(event.target.result);
+    	var data  = UPNG.toRGBA8(png);
+    	console.log(data[0]);
+		var c = document.createElement('canvas');
+		document.getElementById('controlsoutput').appendChild(c);
+    	c.width = png.width * .25;
+    	c.height = png.height * .25;
+    	var g = c.getContext('2d');
+    	var u8data = new Uint8ClampedArray(data[0]);
+
+
+        var out = document.createElement('div');
+        out.style.width = (png.width * .25) + 'px';
+        out.style.height = (png.height * .25) + 'px';
+        out.style.display = 'inline-block';
+        out.style.margin = '5px';
+        out.style.backgroundImage = 'url('+ URL.createObjectURL(new Blob([event.target.result], {type:"image/png"})) + ')';
+        out.style.backgroundSize = 'contain';
+        document.getElementById('controlsoutput').appendChild(out);
+
+    	if(this.__from == 'loader2') {
+    		for(var i=0; i<u8data.length; i++) {
+				u8data[i] = (window._original[i]&1) | (u8data[i] & 254);
+			}
+			window._updated = new Uint8Array(u8data);
+            window.outpng = UPNG.encode([window._updated], png.width,png.height,0);
+			var b = new Blob([outpng], {type:"image/png"});
+            window.outblob = b;
+			var a = document.createElement("a");
+			a.href = URL.createObjectURL(b);
+			a.download = "cart.png";
+            var img = new Image()
+            img.src = a.href;
+			//a.appendChild(img);
+            a.classList.add('dl-link');
+            a.innerText = 'Download now';
+            a.style.verticalAlign='bottom';
+            a.style.display='inline-block';
+            a.style.marginBottom=(png.height * .125) + 'px';
+			document.getElementById('controlsoutput').appendChild(a);
+    	} else {
+    		window._original = u8data;
+    	}
+
+    }
+    reader.readAsArrayBuffer(e.target.files[0]);
+}
+</script>
+    <style>
+        body {
+            background-color: #23272a;
+        }
+        body:before {
+            position: fixed;
+            left:0;
+            top:0;
+            bottom: 0;
+            right:0;
+            min-width: 1240px;
+            min-height: 1080px;
+            background-image:url(img/bg.png);
+            background-size: contain;
+            background-repeat: no-repeat;
+            content:' ';
+            box-shadow: 0 3px 2px 2px rgba(0,0,0,0.2);
+            z-index: -1
+        }
+        .panel {
+            width: 50%;
+            background-color:#506963;
+            position: relative;
+            margin:5%;
+        }
+        .panel:before {
+            width: 7px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            content: ' ';
+            background-color: #b7a68c;
+            box-shadow: inset -1px 1px 1px 0px rgba(255,255,255,0.8), inset 1px -1px 1px 0px rgba(0,0,0,0.8);
+        }
+        .panel:after {
+            width: 39px;
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            content: ' ';
+            background-color: #b7a68c;
+            box-shadow: 
+                inset -1px 1px 1px 0px rgba(255,255,255,0.8), 
+                inset 8px 0px 2px 0px rgba(36,30,24,0.6),
+                inset 4px 0px 4px 0px rgba(245,232,206,0.8),
+                /*inset 4px 0px 4px 0px rgba(255,255,255,0.8),*/
+                inset 1px -1px 1px 0px rgba(0,0,0,0.8);
+        }
+        .panel>* {
+            margin-left:7px;
+            margin-right:39px;
+        }
+        .panel .titlebar {
+            background-color: #b7a68c;
+            box-shadow: inset -1px 1px 1px 0px rgba(255,255,255,0.8), inset 1px -1px 1px 0px rgba(0,0,0,0.8), inset 0px -1px 0px 0px rgba(0,0,0,0.8);
+            /*color:#766549;*/
+            color: rgba(46,39,28,0.7);
+            padding:6px 16px 0px 16px;
+            min-height:38px;
+            font-family: 'Six Caps', sans-serif;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.1),-1px -1px 0 rgba(0,0,0,0.1);
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            font-size: 1.4em;
+            /*font-weight: 500;*/
+            /*line-height: 1.7em;*/
+            /*background-image: 
+
+                linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%), 
+                linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.1) 75%), 
+                linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%); 
+            background-size: 2px 2px;
+            background-position: 0 0, 0 2px, 2px -2px, -2px 0px;*/
+        }
+        .panel .titlebar .title {
+            display: inline-block;
+        }
+        .panel .titlebar .ver {
+            display: inline-block;
+            float:right;
+        }
+        .panel .contentarea {
+            clear:both;
+            padding:12px;
+            font-family: 'Economica', sans-serif;
+        }
+        .panel>.titlepad {
+            /*background-color: #b7a68c;*/
+            box-shadow: inset -1px 1px 1px 0px rgba(255,255,255,0.8), inset 1px -1px 1px 0px rgba(0,0,0,0.8);
+            height:18px;
+            position: relative;
+            overflow: hidden;
+        }
+        .panel>.titlepad:before {
+            box-shadow: inset -1px 1px 1px 0px rgba(0,0,0,0.8), inset 1px -1px 1px 0px rgba(0,0,0,0.8);
+            position: absolute;
+            left:0;
+            top:-10px;
+            bottom:-10px;
+            width:10px;
+            content: ' ';
+        }
+        .panel>.titlepad:after {
+            box-shadow: inset -1px 1px 1px 0px rgba(0,0,0,0.8), inset 2px 0px 1px 1px rgba(0,0,0,0.2), inset 1px -1px 0px 0px rgba(255,255,255,0.4);
+            position: absolute;
+            right:0;
+            top:-10px;
+            bottom:-10px;
+            width:10px;
+            content: ' ';
+        }
+        .panel>.contentwrapper {
+            box-shadow: inset -1px 1px 1px 0px rgba(255,255,255,0.8), inset 1px -1px 1px 0px rgba(0,0,0,0.8), inset 0px -1px 0px 0px rgba(0,0,0,0.8);
+            padding:10px;
+        }
+        .panel>.contentwrapper>.contentarea {
+            background-color: #34514d;
+            border-radius: 8px;
+            box-shadow: inset 0 0 6px 2px rgba(0,0,0,0.3),inset 1px -1px 1px 0px rgba(255,255,255,0.7);
+            clear: both;
+            position: relative;
+        }
+        .panel>.contentwrapper>.contentarea .content {
+            background: #18000d;
+            color:#c39f7b;
+            border-radius: 5px;
+            padding:6px;
+            box-shadow:
+                inset 1px -1px 1px 1px rgba(255,255,255,0.2),
+                inset -1px 1px 1px 1px rgba(0,0,0,0.4),
+                inset 0 0 0px 1px #34514d;
+            /*display: inline-block;*/
+            margin: 0 5px;
+        }
+
+        .controls, #controlsoutput {
+            display: inline-block;
+            width:48%;
+        }
+        a.dl-link {
+            vertical-align: bottom;
+            display: inline-block;
+            margin-bottom: 46.5px;
+            padding:2px 6px;
+            width:80px;
+            border:2px solid #753311;
+            color:#c39f7b;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+        input[type="file"] {
+            background:#26090d;
+        }
+        /*
+        .panel>.contentwrapper>.contentarea .content.left {
+            width:calc(15% - 10px);
+        }
+        .panel>.contentwrapper>.contentarea .content.middle {
+            width:calc(68% - 80px);
+        }
+        .panel>.contentwrapper>.contentarea .content.right {
+            width:calc(15% - 10px);
+        }
+*/
+
+    </style>
+
+</head>
+<body>
+
+    <div class="panel"><div class="titlepad"></div>
+        <div class="titlebar"><div class="title">TEC Redshift CDK</div><div class="ver">VER 0.1</div></div>
+        <div class="contentwrapper">
+            <div class="contentarea">
+                <div>
+                    <div class="content middle">
+                        <p>Creating your uniqie TEC Redshift&tm; is just a few clicks away.</p>
+                        <p>Simply use the buttons below to upload
+                            <ul>
+                                <li>First: Your original game cartridge</li>
+                                <li>Second: The new cartridge image you'd like to use for distribution</li>
+                            </ul>
+                            Once the process is complete, you will be able to download your newly minted TEC Redshift&tm; cartridge and distributed freely.
+                        </p>
+                        <p>If you are looking for unique and itneresting cartridge colors, take a look at our cartridge catalog below.</p>
+                        <div class="controls">
+                            <div>
+                                <p>
+                                    <strong>Step 1: Upload your original PNG TEC Redshift Cartridge:</strong>
+                                </p>
+                                <input type="file" id="loader">
+                            </div>
+                            <div>
+                                <p>
+                                    <strong>Step 2: Upload your new PNG TEC Redshift Cartridge:</strong>
+                                </p>
+                                <input type="file" id="loader2">
+                            </div>
+                        </div>
+                        <div id="controlsoutput"></div>
+                        <div class="catalog"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="contentfooter"></div>
+        </div>
+    </div>
+</body>
+</html>
