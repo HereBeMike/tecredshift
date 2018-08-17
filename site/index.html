@@ -5,6 +5,7 @@
 
 	<script type="text/javascript" src="pako.min.js"></script>
 	<script type="text/javascript" src="UPNG.js"></script>
+
 <script type="text/javascript">
 window.addEventListener('load', function(){
     document.getElementById('loader').addEventListener('change', handleImage, false);
@@ -65,17 +66,41 @@ function handleImage(e) {
 </script>
     <style>
         body {
-            background-color: #23272a;
+            background-color: #595f5d;
+
+            background-image: 
+            	linear-gradient(45deg, #515755 25%, transparent 25%), 
+            	linear-gradient(-45deg, #515755 25%, transparent 25%), 
+            	linear-gradient(45deg, transparent 75%, #515755 75%), 
+            	linear-gradient(-45deg, transparent 75%, #515755 75%); 
+            	background-size: 10px 10px; 
+            	background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
         }
         body:before {
-            position: fixed;
+        	position: fixed;
             left:0;
             top:0;
             bottom: 0;
             right:0;
             min-width: 1240px;
             min-height: 1080px;
+
+            content:' ';
+            z-index: -1;
+
+        	background-image:
+        		linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 44%, transparent 56%, rgba(0,0,0,0.5) 100%);
+        }
+        body:after {
+            position: fixed;
+            left:0;
+            top:0;
+            bottom:0;
+            right:0;
+            min-width: 1240px;
+            min-height: 1080px;
             background-image:url(img/bg.png);
+
             background-size: contain;
             background-repeat: no-repeat;
             content:' ';
@@ -212,6 +237,7 @@ function handleImage(e) {
             vertical-align: bottom;
             margin-bottom: 46.5px;
 	}
+	.content .btn,
 	.content a {
             display: inline-block;
             padding:2px 6px;
@@ -237,12 +263,390 @@ function handleImage(e) {
         }
 */
 
+
+
     </style>
 
-</head>
-<body>
 
-    <div class="panel"><div class="titlepad"></div>
+
+	<script type="text/javascript">
+window.addEventListener('load', function() {
+	if(document.location.href.indexOf('#')>-1) document.body.className = document.location.href.split('#')[1];
+	for(var i=0; i<100; i++) {
+		var x = i % 10;
+		var y = (i-x)/10;
+		var d = document.createElement('div');
+		d.setAttribute('style',
+`
+left:`+(x*20)+`px;
+top:`+(y*20)+`px;
+`);
+		d.dataset.x = x;
+		d.dataset.y = y;
+		d.dataset.on = "false";
+		d.classList.add('pixel');
+		d.addEventListener('click', function(){
+			this.dataset.on = !(this.dataset.on=="true");
+			 goToFrame(onFrame);
+		});
+		document.getElementById('framerender').appendChild(d);
+	}
+	var prev = document.getElementById('prev');
+	prev.classList.add('btn');
+	var next = document.getElementById('next');
+	next.classList.add('btn');
+
+	prev.addEventListener('click', prevFrame);
+	next.addEventListener('click', nextFrame);
+
+
+	document.getElementById('insertframe').addEventListener('click', function() {
+		goToFrame(onFrame);
+		frames.splice(onFrame, 0, []);
+		renderFrame();
+	});
+	document.getElementById('duplicateframe').addEventListener('click', function() {
+		goToFrame(onFrame);
+		frames.splice(onFrame, 0, [].concat(frames[onFrame]));
+		renderFrame();
+	});
+	document.getElementById('copyframe').addEventListener('click', function() {
+		goToFrame(onFrame);
+		window.frameCopy = [].concat(frames[onFrame]);
+	});
+	document.getElementById('pasteframe').addEventListener('click', function() {
+		goToFrame(onFrame);
+		frames[onFrame] = [].concat(window.frameCopy);
+		renderFrame();
+	});
+	document.getElementById('deleteframe').addEventListener('click', function() {
+		goToFrame(onFrame);
+		if(onFrame==0 && frames.length==1) {
+			frames[0] = [];
+			renderFrame();
+			return;
+		}
+		frames.splice(onFrame,1);
+		if(onFrame>0)onFrame--;
+		renderFrame();
+	});
+	document.getElementById('exportframedata').addEventListener('click', function() {
+		goToFrame(onFrame);
+		console.log(renderFramesData());
+	});
+
+
+	renderFrame()
+});
+
+function nextFrame() {
+	console.log('whatever next');
+	if(frames.length <= onFrame+1) {
+		frames.push([]);
+	}
+	goToFrame(onFrame+1);
+}
+function prevFrame() {
+	console.log('whatever prev');
+	if(onFrame==0) return;
+	goToFrame(onFrame-1);
+}
+function goToFrame(nextFrame) {
+	var p = document.getElementsByClassName('pixel');
+	for(var i=0; i<p.length; i++) {
+		frames[onFrame][i] = (p[i].dataset.on=="true")?1:0;
+	}
+	onFrame=nextFrame;
+	renderFrame();
+}
+
+function renderFrame() {
+	var p = document.getElementsByClassName('pixel');
+	for(var i=0; i<p.length; i++) {
+		p[i].dataset.on = frames[onFrame][i]==1;
+	}
+	document.getElementById('currentFrame').innerText = [onFrame+1, '/', frames.length].join('');
+	document.getElementById('outputframes').innerText = renderFramesData();
+}
+
+var onFrame = 0;
+var frames = [
+	[]
+];
+
+//Frames will be output to DATA lines.
+//Each frame will be terminated by a 0
+//Top of the frames file will have a frame seek index
+// for each frame at the file index matching the frame.
+// so file 0 contains frame 0 offset, 1:1, 2:2, etc.
+//Use frames like:
+
+//    COPY 300 GP         	//Clear to black
+//    SEEK -9999			//Get back to start of file
+//    SEEK X 				//Assuming X contains the frame index you want
+//    MARK UPDATEFRAME
+//    COPY F T
+//    FJMP GOT_FRAME
+//    COPY T GP
+function renderFramesData() {
+	var lines = "";
+	var currentLine = "DATA";
+	var header = [];
+	for(var f=0; f<frames.length, frame=frames[f]; f++) {
+		var frameInstructions = 0;
+		for(var i=0; i<=100; i++) {
+			var p = "0";//terminate
+			if(i<100) {
+				//If we have data, don't terminate
+				if(frame[i]==1) {
+					p = [1,i%10, (i-(i%10))/10].join('');
+				} else {
+					p = "";
+				}
+			}
+			if(p.length>0) {
+				frameInstructions++;
+				var tmpLine = [currentLine, p].join(' ');
+				if(tmpLine.length>24) {
+					//need new line:
+					lines +="\n" + currentLine;
+					currentLine = ["DATA", p].join(' ');
+				} else {
+					currentLine = [currentLine, p].join(' ');
+					if(i==100) {
+						lines += "\n" + currentLine;
+						currentLine = "DATA";
+					}
+				}
+			}
+		}
+		header.push(frameInstructions);
+	}
+	//Process frames header:
+	var frameOffsets = [header.length-1]; //We know we need to seek header.length to get to the 0th frame
+	//header[0] = frameOffsets[0];
+	for(var i=1; i<header.length; i++) {
+		frameOffsets.push((frameOffsets[i-1]-1) + header[i-1]);
+	}
+	//Need to DATAize the frameOffsets since they may be longer than one DATA line...
+	var headLines = "";
+	currentLine = "DATA";
+	for(var i=0; i<frameOffsets.length;i++) {
+		var p = frameOffsets[i];
+		var tmpLine = [currentLine, p].join(' ');
+		if(tmpLine.length>24) {
+			//need new line:
+			headLines +="\n" + currentLine;
+			currentLine = ["DATA", p].join(' ');
+		} else {
+			currentLine = [currentLine, p].join(' ');
+			if(i==frameOffsets.length-1) {
+				headLines += "\n" + currentLine;
+				currentLine = "DATA";
+			}
+		}
+	}
+	//console.log('DATA ' + frameOffsets.join(' '), lines);
+
+	return [headLines,lines].join('\n');
+}
+	</script>
+<style>
+.pixel {
+	position:absolute;
+	width:20px;
+	height:20px;
+	background-color: #444;
+	box-shadow:inset 0 0 8px 1px rgba(32,32,32,0.2);
+}
+.pixel[data-on="true"] {
+	background-color: #ddd;
+}
+.frame {
+	width:200px;
+	height:200px;
+	position: relative;
+}
+.currentFrame {
+    clear: both;
+    left: 0;
+    top: 0;
+    width: 200px;
+    text-align: center;
+}
+.frame-controls {
+	position: relative;
+	width: 200px;
+	display: flex;
+}
+.frame-area {
+	width:auto;
+	display: inline-block;
+}
+.func-area {
+	width:auto;
+	display: inline-block;
+}
+
+.content .btn,
+.content a {
+	cursor: pointer;
+    display: inline-block;
+    padding:2px 6px;
+    min-width:80px;
+    border:2px solid #753311;
+    color:#c39f7b;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+}
+.frame-area .frame-controls .prev,
+.frame-area .frame-controls .next {
+	cursor: pointer;
+    display: inline-block;
+    min-width: 30px;
+}
+.prev {
+    float: left;
+}
+.next {
+    float: right;
+}
+.FramEd {
+    justify-content: space-evenly;
+    clear: both;
+    display: flex;
+}
+.panel.frame-editor {
+	width:580px;
+}
+.func-area>div {
+	padding:2px 0 2px 0;
+}
+.break {
+	border-top:4px solid #26090d;
+	min-height: 1px;
+}
+
+
+.panel .contentfooter {
+	height:16px;
+	background-color: #34514d;
+	border-top:1px solid rgba(0,0,0,0.5);
+	border-bottom:1px solid rgba(0,0,0,0.75);
+	border-right:1px solid rgba(200,210,220, 0.4);
+	border-left:1px solid rgba(10,20,30, 0.5);
+	box-shadow:
+		inset 0 8px 5px -5px rgba(0,0,0,0.3),
+	 	inset 0 -5px 5px -5px rgba(0,0,0,0.6);
+	box-sizing: border-box;
+	background-image:
+		linear-gradient(180deg, 
+			transparent 0%, 
+			transparent 40.9%, 
+			rgba(0,0,0,0.8) 49%, 
+			rgba(0,0,0,0.8) 51%, 
+			rgba(200,210,220,0.4) 51.1%, 
+			rgba(200,210,220,0.3) 59%, 
+			transparent 59.1%, 
+			transparent 100%
+		);
+}
+.panel {
+	box-shadow: -1px 3px 2px 2px rgba(20,30,40,0.4);
+}
+
+.show-cdk .panel.cdk {
+	display: block;
+}
+
+.show-framed .panel.frame-editor {
+	display: block;
+}
+
+.panel {display: none;}
+
+.tools {
+	position: fixed;
+	top:0;
+	background-color: rgb(51,51,60);
+	right:0;
+	left:0;
+	padding:12px;
+	box-sizing: border-box;
+	box-shadow: inset 0 -8px 3px -5px rgba(0,0,0,0.5),
+		0 3px 8px 1px rgba(0,0,0,0.5)
+	;
+}
+.tools .launcher {
+	cursor: pointer;
+	margin-left: 12px;
+	display: inline-block;
+	background-color: rgb(51,51,60);
+	border-radius: 5px;
+	border:1px solid rgba(10,10,15,0.8);
+	font-family: 'Economica';
+	font-style: italic;
+	font-weight: bold;
+	font-size: 1.2em;
+	color:white;
+	padding:6px 30px 6px 30px;
+	box-sizing: border-box;
+	box-shadow: 1px -1px 1px 0 rgba(33,32,42,0.6),
+				-1px 1px 1px 0 rgba(84,84,100,0.6),
+				inset 4px 0 0 -3px rgb(38,38,47),
+				inset 0 4px 0 -3px rgb(84,84,100),
+				inset 0 -4px 0 -3px rgb(33,32,42),
+				inset -4px 0 0 -3px rgb(59,59,70);
+}
+.tools .launcher:active {
+	background-color: rgb(41,41,50);
+	box-shadow: 1px -1px 1px 0 rgba(33,32,42,0.6),
+				-1px 1px 1px 0 rgba(84,84,100,0.6),
+				inset -4px 0 0 -3px rgb(38,38,47),
+				inset 0 4px 0 -3px rgb(59,59,70),
+				inset 0 -4px 0 -3px rgb(33,32,42),
+				inset 4px 0 0 -3px rgb(33,32,42);
+}
+.panel>.contentwrapper>.contentarea .content.instructions,
+.panel>.contentwrapper>.contentarea .content.output {
+	font-family: monospace;
+	color:rgb(229,153,46);
+}
+.panel>.contentwrapper>.contentarea .content.instructions div,
+.panel>.contentwrapper>.contentarea .content.output div{
+	margin:4px 0 4px 0;
+	background-color: rgb(37,9,13);
+	border-radius: 5px;
+	padding:3px 8px 2px 8px;
+}
+.panel>.contentwrapper>.contentarea .content.instructions div code {
+	color: #c39f7b;
+}
+</style>
+<script type="text/javascript">
+	window.addEventListener('load',
+		function() {
+			var l = document.getElementsByClassName('launcher');
+			for(var i=0; i<l.length; i++) {
+				l[i].addEventListener('click', 
+					function() {
+						document.body.className="";
+						document.body.classList.add(this.dataset.show);
+						document.location.href=document.location.href.split('#')[0] + '#' + this.dataset.show;
+					});
+			}
+		}
+	);
+</script>
+</head>
+<body class="show-cdk">
+	<div class="tools">
+		<div class="launcher" data-show="show-cdk">CDK</div>
+		<div class="launcher" data-show="show-framed">FramEd</div>
+	</div>
+
+    <div class="panel cdk"><div class="titlepad"></div>
         <div class="titlebar"><div class="title">TEC Redshift CDK</div><div class="ver">VER 0.1</div></div>
         <div class="contentwrapper">
             <div class="contentarea">
@@ -254,7 +658,7 @@ function handleImage(e) {
                                 <li>First: Your original game cartridge</li>
                                 <li>Second: The new cartridge image you'd like to use for distribution</li>
                             </ul>
-                            Once the process is complete, you will be able to download your newly minted TEC Redshift&trade; cartridge and distributed freely.
+                            Once the process is complete, you will be able to download your newly minted TEC Redshift&trade; cartridge and distribute it freely.
                         </p>
                         <p>If you are looking for unique and itneresting cartridge colors, take a look at our <a href="https://github.com/HereBeMike/tecredshift/tree/master/site/img/blank-carts">cartridge catalog</a>.</p>
                         <div class="controls">
@@ -279,8 +683,70 @@ function handleImage(e) {
                     </div>
                 </div>
             </div>
-            <div class="contentfooter"></div>
         </div>
+        <div class="contentfooter"></div>
     </div>
+
+    <div class="panel frame-editor"><div class="titlepad"></div>
+        <div class="titlebar"><div class="title">TEC Redshift FramEd</div><div class="ver">VER 0.1</div></div>
+        <div class="contentwrapper">
+            <div class="contentarea">
+                <div>
+                    <div class="FramEd content">
+                    	<div style="padding:12px">
+							<div class="frame-area">
+								<div id="framerender" class="frame"></div>
+								<div id="controls" class="frame-controls">
+									<div id="prev" class="prev">&lt;&lt;</div>
+									<div id="currentFrame" class="currentFrame">1/1</div>
+									<div id="next" class="next">&gt;&gt;</div>
+								</div>
+							</div>
+						</div>
+                    	<div style="padding:12px">
+							<div class="func-area">
+								<div>
+									<div id="insertframe" class="btn">Insert</div>
+								</div>
+								<div>
+									<div id="duplicateframe" class="btn">Duplicate</div>
+								</div>
+								<div>
+									<div id="copyframe" class="btn">Copy Frame</div>
+								</div>
+								<div>
+									<div id="pasteframe" class="btn">Paste Frame</div>
+								</div>
+								<div>
+									<div id="deleteframe" class="btn">Delete Frame</div>
+								</div>
+
+								<div>
+									<div class="break"></div>
+								</div>
+								<div>
+									<div id="exportframedata" class="btn" style="display:none;">Export EXA DATA</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div style="clear: both; vertical-align: top;">
+					<div id="outputframes" class="content output" style="float:left;margin-top:10px;display: inline-block; width:calc(50% - 40px);">
+						This is the output area
+					</div>
+					<div id="outputframes" class="content instructions" style="float:right;margin-top:10px;display: inline-block; width: calc(50% - 40px); ">
+						<div>The <code>DATA</code> is output to the left.</div>
+						<div>The first <code>DATA</code> line(s) are file offsets for each frame index. Each frame is terminated by a <code>0</code>.</div>
+						<div>An EXA can render a frame by <code>SEEK</code>ing to the frame offset, the copying <code>F</code> to <code>GP</code> until <code>F = 0</code>.</div>
+					</div>
+				</div>
+				<div style="display: block; width: 100%;clear: both;">
+				</div>
+            </div>
+        </div>
+        <div class="contentfooter"></div>
+    </div>
+    
 </body>
 </html>
