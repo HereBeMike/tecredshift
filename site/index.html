@@ -285,12 +285,25 @@ top:`+(y*20)+`px;
 		d.dataset.y = y;
 		d.dataset.on = "false";
 		d.classList.add('pixel');
-		d.addEventListener('click', function(){
+		d.addEventListener('mousemove', function(e){
+			if(window._setPixelColor!=null && window._setPixelColor > -1) {
+				var changeTo = (window._setPixelColor == 1).toString();
+				if(this.dataset.on != changeTo) {
+					console.log(window._setPixelColor);
+					this.dataset.on = changeTo;
+					goToFrame(onFrame);
+				}
+			}
+		});
+		d.addEventListener('mousedown', function(e){
+			e.preventDefault();
 			this.dataset.on = !(this.dataset.on=="true");
+			window._setPixelColor = this.dataset.on=="true"?1:0;
 			 goToFrame(onFrame);
 		});
 		document.getElementById('framerender').appendChild(d);
 	}
+	document.addEventListener('mouseup', function(){window._setPixelColor=null});
 	var prev = document.getElementById('prev');
 	prev.classList.add('btn');
 	var next = document.getElementById('next');
