@@ -345,8 +345,34 @@ top:`+(y*20)+`px;
 	});
 
 
+	setInterval(animate, 34);
+
 	renderFrame()
 });
+
+var aniFrame = 0;
+var aniHeld = 0;
+function animate() {
+	//the interval will be what it is...
+
+	var t = document.getElementById('ani');
+	var g = t.getContext('2d');
+	var f = frames[aniFrame];
+	var d = new Uint8ClampedArray(100*4);
+	for(var i=0; i<100; i++) {
+		var at = i*4;
+		d[at] = d[at+1] = d[at+2] = f[i] * 255;
+		d[at+3] = 255;
+	}
+	g.putImageData(new ImageData(d,10), 0, 0);
+	aniHeld++;
+	if(typeof framesMeta[aniFrame] == 'undefined') framesMeta[aniFrame]=1;
+	if(aniHeld>= framesMeta[aniFrame]) {
+		aniHeld = 0;
+		aniFrame = (aniFrame + 1) % frames.length;
+	}
+
+}
 
 function nextFrame() {
 	console.log('whatever next');
@@ -767,6 +793,9 @@ function renderFramesData() {
 								<div>
 									<div>Hold Frame:</div>
 									<input id="sustain" onchange="updateFrameMeta(this)" style="cursor: initial; max-width: 80px;background-color: transparent;" class="btn" type="number" min="1" value="1">
+								</div>
+								<div>
+									<div class="animation"><canvas id="ani" width="10" height="10" style="image-rendering: pixelated; width:40px; height:40px;"></canvas></div>
 								</div>
 							</div>
 						</div>
