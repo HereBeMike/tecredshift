@@ -343,10 +343,6 @@ top:`+(y*20)+`px;
 		if(onFrame>0)onFrame--;
 		renderFrame();
 	});
-	document.getElementById('exportframedata').addEventListener('click', function() {
-		goToFrame(onFrame);
-		console.log(renderFramesData());
-	});
 
 
 	renderFrame()
@@ -356,6 +352,7 @@ function nextFrame() {
 	console.log('whatever next');
 	if(frames.length <= onFrame+1) {
 		frames.push([]);
+		framesMeta.push(1);
 	}
 	goToFrame(onFrame+1);
 }
@@ -368,8 +365,12 @@ function goToFrame(nextFrame) {
 	var p = document.getElementsByClassName('pixel');
 	for(var i=0; i<p.length; i++) {
 		frames[onFrame][i] = (p[i].dataset.on=="true")?1:0;
+		framesMeta[onFrame] = document.getElementById('sustain').value*1;
 	}
 	onFrame=nextFrame;
+	var meta = framesMeta[onFrame];
+	if(meta == null) meta = 1;
+	document.getElementById('sustain').value = meta;
 	renderFrame();
 }
 
@@ -386,6 +387,7 @@ var onFrame = 0;
 var frames = [
 	[]
 ];
+var framesMeta = [1];
 
 //Frames will be output to DATA lines.
 //Each frame will be terminated by a 0
@@ -435,12 +437,30 @@ function renderFramesData() {
 		}
 		header.push(frameInstructions);
 	}
+
 	//Process frames header:
 	var frameOffsets = [header.length-1]; //We know we need to seek header.length to get to the 0th frame
 	//header[0] = frameOffsets[0];
 	for(var i=1; i<header.length; i++) {
 		frameOffsets.push((frameOffsets[i-1]-1) + header[i-1]);
 	}
+
+//Here we insert held frames in the header - repeats of current frame n times.
+	var framesInserted = 0;
+	for(var i=0; i<framesMeta.length; i++) {
+		var t = framesMeta[i] - 1;
+		var frameOffsetIndex = i + framesInserted;
+		if(t > 0) {
+			for(var sustain=0; sustain<t; sustain++) {
+				framesInserted++;
+				frameOffsets.splice(frameOffsetIndex,0,frameOffsets[frameOffsetIndex]);
+				for(var j=0; j<=frameOffsetIndex;j++) {
+					frameOffsets[j]++;
+				}
+			}
+		}
+	}
+
 	//Need to DATAize the frameOffsets since they may be longer than one DATA line...
 	var headLines = "";
 	currentLine = "DATA";
@@ -459,10 +479,17 @@ function renderFramesData() {
 			}
 		}
 	}
+	if(currentLine!="DATA") {
+		headLines += "\n" + currentLine;
+	}
 	//console.log('DATA ' + frameOffsets.join(' '), lines);
 
 	return [headLines,lines].join('\n');
 }
+
+	function updateFrameMeta(who) {
+		goToFrame(onFrame);
+	}
 	</script>
 <style>
 .pixel {
@@ -738,7 +765,8 @@ function renderFramesData() {
 									<div class="break"></div>
 								</div>
 								<div>
-									<div id="exportframedata" class="btn" style="display:none;">Export EXA DATA</div>
+									<div>Hold Frame:</div>
+									<input id="sustain" onchange="updateFrameMeta(this)" style="cursor: initial; max-width: 80px;background-color: transparent;" class="btn" type="number" min="1" value="1">
 								</div>
 							</div>
 						</div>
